@@ -82,14 +82,43 @@ or complete legal coverage.
 
 ## Getting Started
 
-_Setup instructions to be added once the app is ready to run._
+Python 3.12, from the repo root (PowerShell):
+```powershell
+py -3.12 -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements-dev.txt
+copy .streamlit\secrets.toml.example .streamlit\secrets.toml   # then paste the Gemini key (ask Jy; never commit it)
+.\.venv\Scripts\python -m streamlit run streamlit_app.py
+.\.venv\Scripts\python -m pytest -q                              # backend tests, offline (fake LLM)
+```
+Streamlit Cloud: main file `streamlit_app.py`, Python 3.12, and paste the contents of `secrets.toml` into App settings → Secrets.
 
 ---
 
-## Team docs (build plan & status)
+## Backend (`services/`): status and how to plug it in
 
-- **Status:** frontend done on mocks; backend `services/` planned, built during the hackathon. See [docs/BUILD_STATUS.md](docs/BUILD_STATUS.md).
-- **Backend ⇄ frontend contract:** [docs/SERVICE_CONTRACT.md](docs/SERVICE_CONTRACT.md) (mirrors `ui/backend.py`).
-- **Checklist, timeline, Plan B, demo script, judge Q&A, LLM choice:** [docs/RUNBOOK.md](docs/RUNBOOK.md).
-- **Backend spec for Kiro:** [.kiro/specs/compliance-alert-backend/](.kiro/specs/compliance-alert-backend/).
-- **Seed data:** [seed/](seed/) (official Sarawak LawNet PDFs + trigger rules + evaluation cases).
+**Status:** built and tested. 23 offline tests pass. A live run with Gemini on the full `Law/` dataset passed
+10 of 12 evaluation cases on the first try, at about 4–8 s per check, and the two misses were then explained.
+Run it yourself with `python -m scripts.eval`.
+
+**Plug in:** in `ui/backend.py` set `USE_MOCK = False`. It imports `check_action, upload_preview, submit_upload,
+list_pending, approve, reject, list_triggers, propose_trigger, list_laws, get_audit_log, render_highlight` (plus
+`health` and `ServiceError`) from `services`, with the same names and keys as the frontend contract.
+
+Notes for the UI (nothing in the contract changes):
+- **The first call after a (re)start builds the law library (~20 s locally).** Call `services.health()` once inside `@st.cache_resource` with a spinner, e.g. "Loading law library…".
+- `check_action` takes ~3–10 s, so call it only on the button press and keep the result in `st.session_state`.
+- Pages are **1-based**. Use `services.render_highlight(pdf_path, page, highlight_rects)` for the highlighted page image.
+- `list_pending()` ids are unique across types (trigger rules use 1,000,000+), so `approve(id, note)` works for all of them.
+  Optional: `approve(id, note, reviewer="name")` and `propose_trigger(..., severity_override="red", proposed_by="name")` put real names in the audit log.
+- Errors are raised as `ServiceError`; show `str(e)`.
+- Extra keys you may show: `dropped_unverified` ("1 unverified claim removed"), `source_authority == "unofficial"` (a Malay *translation*), `amend_notes`, `language`, and `llm_provider == "fake"` (Replay mode).
+- A question in Bahasa Melayu gets a Malay headline and requirements. Quotes stay in the law's own language.
+
+**Knowledge base:** all 44 PDFs in `Law/` (Bahasa Melayu and English), plus the NREO in `Law/Sarawak Environment Law/`
+for the waste-facility demo. English and Malay versions of the same Act are grouped, so an answer cites one of them,
+in the question's language. Titles and version dates come from inside each PDF (see `services/catalog/laws.json`).
+- `LAWS OF SARAWAK.pdf` is really the *Native Customary Marriages (Maintenance) Ordinance 2003*.
+- `LAND USE ORDINANCE.pdf` is the *Land Use (Control of Prescribed Trading Activities) Ordinance*.
+- **Check these before relying on them:** the English Federal Constitution PDF is only "as at 1 Nov 2010", and BAFIA 1989 may have been repealed by the Financial Services Act 2013. Their version labels say so.
+- To add a law permanently, drop the PDF into `Law/<Malaysia|Sarawak> <Category> Law/`, run `python -m scripts.build_catalog`, and commit `services/catalog/laws.json`. In the app, the legal officer can also upload it; it stays **pending until approved**.
+- Uploaded meeting minutes, circulars or guidelines (`instrument_type` in the upload meta) are internal documents. They can produce 🟡 but never 🔴.

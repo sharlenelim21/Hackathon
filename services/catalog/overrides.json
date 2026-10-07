@@ -1,0 +1,30 @@
+{
+  "Law/Sarawak Environment Law/NATURAL RESOURCES AND ENVIRONMENT ORDINANCE.pdf": {
+    "code": "NREO",
+    "group_code": "SWK-NREO",
+    "title": "Natural Resources and Environment Ordinance",
+    "sector": "Environment (Natural Resources and Environment Board)",
+    "version_label": "LawNet reprint 2024",
+    "source_url": "https://lawnet.sarawak.gov.my/lawnet_file/Ordinance/ORD_NRE%20ORD.%20LawNet%202024.pdf"
+  },
+  "Law/Sarawak Native Law/LAND CODE.pdf": {
+    "code": "LC",
+    "group_code": "SWK-LC",
+    "title": "Land Code",
+    "sector": "Land (Land and Survey Department)",
+    "source_url": "https://lawnet.sarawak.gov.my/lawnet_file/Ordinance/ORD_2025%20LANDCODE%20LAWNET%20%20(1).pdf"
+  },
+  "Law/Malaysia Native Law/Perlembagaan Persekutuan.pdf": {"title": "Perlembagaan Persekutuan"},
+  "Law/Malaysia Business Law/Consumer Credit Act.pdf": {"title": "Consumer Credit Act 2025"},
+  "Law/Malaysia Syariah Law/Act_559_-_Syariah_Criminal_Offences__Federal_Territories__Act_1997.pdf": {"title": "Syariah Criminal Offences (Federal Territories) Act 1997"},
+  "Law/Sarawak Business Law/HIRE PURCHASE REGISTRATION ORDINANCE.pdf": {"title": "Hire Purchase Registration Ordinance"},
+  "Law/Sarawak Business Law/LIMITATION ORDINANCE.pdf": {"title": "Limitation Ordinance"},
+  "Law/Sarawak Native Law/Native Courts Ordinance, 1992.pdf": {"title": "Native Courts Ordinance, 1992"},
+  "Law/Malaysia Business Law/Akta Bank dan InstitusiInstitusi Kewangan 1989.pdf": {
+    "title": "Akta Bank dan Institusi-Institusi Kewangan 1989",
+    "version_label": "Persetujuan Diraja 23-Aug-1989 · semak: mungkin telah dimansuhkan oleh Akta Perkhidmatan Kewangan 2013"
+  },
+  "Law/Malaysia Business Law/Banking and Financial Institutions ACT 1989.pdf": {
+    "version_label": "Amendments up to 1 October 2008 · check: may have been repealed by the Financial Services Act 2013"
+  }
+}

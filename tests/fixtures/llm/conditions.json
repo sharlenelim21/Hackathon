@@ -1,0 +1,17 @@
+{
+  "conditions": [
+    {"key": "NREO:11A", "subsection": "(3)", "requirement": "Get the Board's approval of the environmental impact report before any preparatory work.",
+     "why": "Facilities for storing or recycling municipal waste are listed activities. Work may not start before the Board approves the report.",
+     "quote": "No person shall carry out or commence any preparatory work relating to any activity"},
+    {"key": "NREO:11A", "subsection": "(1)", "requirement": "Made-up requirement that must be dropped.",
+     "why": "This quote does not exist in the ordinance.",
+     "quote": "All waste recycling facilities require an EIA approval from the Ministry of Health"},
+    {"key": "NREO:999", "subsection": null, "requirement": "Invented section that must be dropped.",
+     "why": "This key was never sent to the model.",
+     "quote": "This section does not exist anywhere in the ordinance at all"},
+    {"key": "LC:5", "subsection": "(1)", "requirement": "Check with the Land and Survey Department whether the site is native customary rights land.",
+     "why": "The action does not say who holds rights over the site.",
+     "quote": "native customary rights may be created in accordance with the native customary law"}
+  ],
+  "explanation": "Fixture explanation."
+}
