@@ -83,3 +83,13 @@ or complete legal coverage.
 ## Getting Started
 
 _Setup instructions to be added once the app is ready to run._
+
+---
+
+## Team docs (build plan & status)
+
+- **Status:** frontend done on mocks; backend `services/` planned, built during the hackathon. See [docs/BUILD_STATUS.md](docs/BUILD_STATUS.md).
+- **Backend ⇄ frontend contract:** [docs/SERVICE_CONTRACT.md](docs/SERVICE_CONTRACT.md) (mirrors `ui/backend.py`).
+- **Checklist, timeline, Plan B, demo script, judge Q&A, LLM choice:** [docs/RUNBOOK.md](docs/RUNBOOK.md).
+- **Backend spec for Kiro:** [.kiro/specs/compliance-alert-backend/](.kiro/specs/compliance-alert-backend/).
+- **Seed data:** [seed/](seed/) (official Sarawak LawNet PDFs + trigger rules + evaluation cases).
