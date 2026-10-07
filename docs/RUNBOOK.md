@@ -8,7 +8,7 @@ and plugged in by setting `USE_MOCK = False` in `ui/backend.py`.
 
 **Jy (backend)**
 - [ ] Confirm the hackathon rules: is pre-written code allowed? (Docs and data prep usually are; the frontend team should check the same for their UI.)
-- [ ] Pick the LLM provider (see section 6), get the key, and test one JSON-mode call.
+- [x] LLM provider: **Gemini**. The key is in `.streamlit/secrets.toml` (gitignored, local only) and was tested on 2026-10-07 (section 6). At deploy time, paste the same lines into Streamlit Cloud → App settings → Secrets. Teammates who run locally copy `.streamlit/secrets.toml.example` and get the key from Jy privately, never via git or chat groups.
 - [ ] Install Python 3.12 and the packages once at home, so the venue Wi-Fi doesn't matter.
 - [ ] Open the **`Hackathon` repo folder** in Kiro, not the parent `C:\School\Hackhathon` (placeholder steering only). Check that Kiro shows the spec `compliance-alert-backend`.
 - [ ] Read NREO s.11A (PDF pages 23–25) and Land Code s.5 (PDF page 28). Confirm or edit `seed/triggers.json` and `seed/eval.json`.
@@ -49,6 +49,7 @@ If integration fails at 2:20 → demo with `USE_MOCK = True` and show the real b
 | 6 | LLM paraphrases quotes, so conditions get dropped | Prompt demands verbatim; we verify against the exact text sent; near-match ≥ 90% allowed | Shorten quotes to 8–15 words in the prompt, or switch to a stronger model |
 | 7 | LLM returns invalid JSON | JSON mode + pydantic validation + 1 retry | Switch model/provider in secrets |
 | 8 | Check too slow (> 30 s) | 2 LLM calls, ≤ 10 sections, text capped at 6,000 chars each | Faster model; cap candidates at 6 |
+| 8b | **Gemini free tier overloaded**: on 2026-10-07 several Flash models returned 503 "high demand", and the same model took 2–16 s | `llm.py` tries `LLM_MODEL` then `LLM_FALLBACK_MODELS` on 503/429/timeout | Enable billing on the Google project (paid tier) before the demo, or keep a second provider key ready; backup video |
 | 9 | Venue internet down | Phone hotspot | Backup video; `LLM_PROVIDER=fake` (shown as "Replay mode", never hidden) |
 | 10 | Kiro slow or out of credits | Small tasks, full design written | Jy codes directly from design.md |
 | 11 | Streamlit Cloud wipes `data/` on restart; apps sleep after 12 h without traffic | `services` re-seeds itself on the first call | Open the app 10+ minutes before judging; don't redeploy between the live upload and the approval step |
@@ -77,12 +78,24 @@ Other demo actions: *"The Public Works Department plans a new sewage treatment p
 - **Scanned documents? Malay?** Scanned PDFs are rejected (OCR is roadmap). Malay questions work through the LLM; test one before claiming it.
 - **Scale?** For thousands of documents: narrow by metadata and keyword search first, then navigate the structure inside each law.
 
-## 6. LLM provider (pick one before the event)
-`services/llm.py` supports any OpenAI-compatible API (one `LLM_BASE_URL` + `LLM_MODEL` + `LLM_API_KEY`), and Claude through its own SDK.
+## 6. LLM provider: **chosen: Google Gemini** (key set up and tested on 2026-10-07)
+Test on real NREO s.11A text, JSON mode, "copy the quote character-for-character":
+
+| Model | Result |
+|---|---|
+| `gemini-3.5-flash-lite` (**main**) | valid JSON, quote verbatim, 2.4 s and 15.5 s on two calls |
+| `gemini-3.1-flash-lite` (backup 1) | valid JSON, quote verbatim, 6.8 s |
+| `gemini-3.5-flash` (backup 2) | 503 once; then valid JSON + verbatim with `reasoning_effort="low"`, 16.5 s; invalid (cut-off) JSON when `max_tokens` was only 800 |
+| `gemini-3.8/3.7/3.6-flash`, `gemini-flash-latest` | 503 "high demand" at test time |
+| `gemini-2.5-flash` | 404, no longer available to new users |
+
+Free-tier prompts may be used by Google to improve its products, so send only public law text and demo inputs.
+
+Other options, if Gemini becomes unreliable: `services/llm.py` supports any OpenAI-compatible API (one `LLM_BASE_URL` + `LLM_MODEL` + `LLM_API_KEY`), and Claude through its own SDK.
 
 | Provider | Cost for us | Notes |
 |---|---|---|
-| **Google Gemini, Flash model** (recommended to start) | Free tier | Key from Google AI Studio; OpenAI-compatible endpoint, so no extra code. Free-tier prompts may be used by Google to improve products: fine for public laws and demo inputs, and an answer ready for the data question |
+| **Google Gemini, Flash model** (chosen) | Free tier | Key from Google AI Studio; OpenAI-compatible endpoint, so no extra code. Free-tier prompts may be used by Google to improve products: fine for public laws and demo inputs, and an answer ready for the data question |
 | Anthropic Claude (Sonnet 5.5 / Opus 5.5) | Paid, about US$0.04 per check with Sonnet 5.5 at list prices (≈12k input + 1.5k output tokens). Opus 5.5 costs more and always thinks, so it's slower | Strong at copying quotes exactly and following format rules; also offered on AWS Bedrock (sponsor story). Needs the `anthropic` SDK branch in `llm.py` |
 | DeepSeek | Paid, fractions of a cent per check | OpenAI-compatible JSON mode (the prompt must contain "json"); China-hosted, so expect a data-residency question |
 | OpenAI | Paid | OpenAI SDK native; strict JSON-schema outputs |

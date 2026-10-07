@@ -10,7 +10,7 @@ apply its Plan B and move on. Never cut: verified citations (Req 3), conditions-
 - [ ] 1. Setup and smoke tests (0:00–0:15)
   - [ ] 1.1 Create `services/`, `scripts/`, `tests/` per structure.md; venv (Python 3.12) and dependencies (tech.md); `requirements.txt` at the repo root (merge with the UI's needs: streamlit, pymupdf); `.gitignore`: `.venv/`, `data/`, `.env`, `.streamlit/secrets.toml`
   - [ ] 1.2 `scripts/smoke_pdf.py`: open `seed/pdfs/NREO_Cap84_LawNet2024.pdf` with PyMuPDF; print page_count (expect 45) and the first 300 characters of PDF page 23 (expect the s.11A heading); get words on page 25; add a highlight annot on the first 5 words; save the PNG to `data/renders/smoke.png`. Must run without errors.
-  - [ ] 1.3 `services/config.py` (settings: env → st.secrets lazy → .env; TAGS = the `tags` list in `seed/triggers.json`; SEVERITY_RULES from design §7; flags HIGHLIGHT/XREFS/BM25_K) and `services/llm.py` (providers `openai_compatible`, `fake`); `scripts/smoke_llm.py` makes one real JSON-mode call and prints the parsed dict
+  - [ ] 1.3 `services/config.py` (settings: env → st.secrets lazy → .env; TAGS = the `tags` list in `seed/triggers.json`; SEVERITY_RULES from design §7; flags HIGHLIGHT/XREFS/BM25_K) and `services/llm.py` (providers `openai_compatible`, `fake`; model fallback list + retry on 503/429/timeout per design §5); `scripts/smoke_llm.py` makes one real JSON-mode call (key from `.streamlit/secrets.toml`, already set up for Gemini) and prints the model used, seconds and the parsed dict
   - Plan B: LLM key or network fails → continue with `LLM_PROVIDER=fake`; fix the key in parallel
   - _Requirements: 10_
 

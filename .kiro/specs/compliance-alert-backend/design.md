@@ -149,9 +149,16 @@ Compare sections by key → for each added/removed/changed key build
 - Section text sent to the LLM is capped at 6,000 characters (append `[…truncated]`).
 
 ## 5. LLM (`llm.py`, `prompts.py`)
-`call_llm_json(name: str, system: str, user: str, max_tokens: int = 2000) -> dict`
-- openai_compatible: `OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY).chat.completions.create(model=LLM_MODEL,
-  messages=[system, user], response_format={"type":"json_object"}, temperature=0, max_tokens)` → `json.loads`.
+`call_llm_json(name: str, system: str, user: str) -> dict`
+- openai_compatible: `OpenAI(base_url=LLM_BASE_URL, api_key=LLM_API_KEY).chat.completions.create(model=m,
+  messages=[system, user], response_format={"type":"json_object"}, temperature=0, max_tokens=LLM_MAX_TOKENS)` → `json.loads`.
+- **Model fallback (tested need):** try `[LLM_MODEL] + LLM_FALLBACK_MODELS`. On HTTP 503/429, a timeout (30 s) or empty
+  content, wait 1 s and try the next model. Log which model answered, and add [extra] `llm_model` to results.
+  Gemini free tier on 2026-10-07: `gemini-3.8/3.7/3.6-flash` and `gemini-flash-latest` returned 503 "high demand";
+  `gemini-2.5-flash` is closed to new users (404); `gemini-3.5-flash-lite` (2–16 s), `gemini-3.1-flash-lite` (7 s)
+  and `gemini-3.5-flash` (with `reasoning_effort="low"`, 17 s) returned valid JSON with verbatim quotes.
+- `LLM_MAX_TOKENS` default 3000: Gemini Flash models spend output tokens on thinking. With `max_tokens=800`,
+  `gemini-3.5-flash` returned cut-off, invalid JSON.
 - anthropic (only if chosen): official `anthropic` SDK per its docs (structured outputs; no `temperature`).
 - Validate with the pydantic model for `name` (`PlanOut`, `ConditionsOut`). On failure, retry once
   with the validation error appended to `user`. On a second failure → `ServiceError("llm_unavailable")`.
@@ -269,10 +276,11 @@ Read in order: environment variables → `streamlit.secrets` (lazy `import strea
 try/except) → `.env` → defaults.
 ```
 LLM_PROVIDER=openai_compatible        # openai_compatible | anthropic | fake
-LLM_BASE_URL=…                        # e.g. Gemini: https://generativelanguage.googleapis.com/v1beta/openai/
-                                      #      DeepSeek: https://api.deepseek.com   OpenAI: https://api.openai.com/v1
-LLM_API_KEY=replace-me
-LLM_MODEL=replace-me                  # copy the current model name from the provider's docs/console
+LLM_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/   # team choice: Gemini
+LLM_API_KEY=…                         # in .streamlit/secrets.toml (gitignored) / Cloud secrets only
+LLM_MODEL=gemini-3.5-flash-lite
+LLM_FALLBACK_MODELS=gemini-3.1-flash-lite,gemini-3.5-flash
+LLM_MAX_TOKENS=3000
 DATA_DIR=data
 HIGHLIGHT=1   XREFS=1   BM25_K=5
 ```
