@@ -12,13 +12,11 @@
 
 ## About the Project
 
-Compliance Impact Alert helps government sector workers quickly check whether a planned
-action (e.g. construction, land clearing, procurement) triggers legal or regulatory
-requirements from laws outside their own department — before they proceed.
+RAKAN (Regulatory Advisory & Compliance Alert Network) helps government sector workers quickly check whether a planned action (e.g. construction, land clearing, procurement) triggers legal or regulatory requirements from laws outside their own department — before they proceed.
 
-Instead of a generic "yes/no", the system returns a **Compliance Impact Alert**: a
-conditions-first checklist built from verified, citable sources, so no answer is ever a bare
-approval or an invented legal claim.
+Instead of providing a generic "yes/no" answer, RAKAN generates a Compliance Impact Alert: a conditions-first checklist built from verified, citable sources, so no answer is based on a bare approval or an invented legal claim.
+
+The name RAKAN reflects the system's role as a regulatory support tool for government officers, helping them identify, understand, and verify compliance requirements before taking action.
 
 ### Key Features
 
