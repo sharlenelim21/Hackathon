@@ -72,11 +72,17 @@ or complete legal coverage.
 
 ## Screenshots
 
-> _Screenshots to be added._
+**Check an action (Worker tab)** — a worker describes a planned action in plain text.
 
-| Worker View | Legal Officer View | Citation / Highlighted PDF |
-|---|---|---|
-| ![Worker view](./screenshots/worker-view.png) | ![Legal officer view](./screenshots/legal-officer-view.png) | ![Citation view](./screenshots/citation-view.png) |
+![Check an action](./screenshots/worker-check-action.png)
+
+**Result: Compliance Impact Alert** — a conditions-first checklist with missing facts, severity badges, and a verified quote linking to the source law.
+
+![Result checklist](./screenshots/result-checklist.png)
+
+**Verified citation on the source PDF** — the exact quote highlighted on the actual law page.
+
+![Highlighted citation](./screenshots/highlighted-citation.png)
 
 ---
 
