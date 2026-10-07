@@ -1,0 +1,11 @@
+[theme]
+base = "light"
+primaryColor = "#C8A45D"
+backgroundColor = "#F3E9D8"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#2B2B2B"
+font = "sans serif"
+
+[client]
+# Product look: collapse the Streamlit dev toolbar to the minimal menu.
+toolbarMode = "minimal"
