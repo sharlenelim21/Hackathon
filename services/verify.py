@@ -51,6 +51,23 @@ def verify_quote(quote: str, section_text: str) -> str | None:
     return None
 
 
+def sentence_around(quote: str, section_text: str, before: int = 400, after: int = 900) -> str:
+    """The legal sentence that contains the quote, for judging severity. Wording such as
+    '…shall be guilty of an offence' often comes after the part the AI quoted, so judging the
+    quote alone can turn a real requirement into 'info'. Falls back to the quote itself."""
+    n = normalize(section_text)
+    q = normalize(clean_quote(quote))
+    i = n.find(q) if q else -1
+    if i < 0:
+        return quote
+    j = i + len(q)
+    start = n.rfind(". ", 0, i)
+    start = 0 if start < 0 else start + 2
+    end = n.find(". ", j)
+    end = len(n) if end < 0 else end + 1
+    return n[max(start, i - before):min(end, j + after)]
+
+
 def find_highlight(pdf_path: str, page_start: int, page_end: int,
                    quote: str) -> tuple[int, list[list[float]]]:
     """Best-effort boxes for the quote. Returns (1-based page, rects); rects are all on that page."""

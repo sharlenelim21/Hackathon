@@ -17,7 +17,7 @@ from .llm import LLMError, call_llm_json
 from .prompts import conditions_system, conditions_user, plan_system, plan_user
 from .schemas import ConditionsOut, PlanOut
 from .severity import classify, status_and_headline
-from .verify import clean_quote, find_highlight, normalize, verify_quote
+from .verify import clean_quote, find_highlight, normalize, sentence_around, verify_quote
 
 log = logging.getLogger("services.pipeline")
 DISCLAIMER = {
@@ -185,7 +185,7 @@ def _condition(conn, idx, key: str, row, c, trig: dict | None, sources: list[str
     law = idx.laws[sec.law_id]
     pdf = str(resolve_path(law.file_path))
     page, rects = find_highlight(pdf, sec.page_start, sec.page_end, c.quote) if highlight else (sec.page_start, [])
-    severity, wording = classify(c.quote, trig["severity_override"] if trig else None)
+    severity, wording = classify(sentence_around(c.quote, row["text"]), trig["severity_override"] if trig else None)
     if law.instrument_type not in LEGAL_INSTRUMENTS and severity == "red":
         severity, wording = "yellow", f"{wording} (internal document, not law)"
     in_force = law.in_force_date

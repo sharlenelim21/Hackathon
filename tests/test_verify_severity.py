@@ -3,7 +3,7 @@ from services.parser import parse
 from services.pdftext import open_pdf, page_texts
 from services.render import render_highlight
 from services.severity import OVERRIDE_WORDING, classify, status_and_headline
-from services.verify import find_highlight, verify_quote
+from services.verify import find_highlight, sentence_around, verify_quote
 
 REAL = "No person shall carry out or commence any preparatory work relating to any activity"
 FAKE = "All school extensions require an EIA approval from the Ministry of Health"
@@ -40,6 +40,19 @@ def test_severity_rules():
     assert classify("Lembaga boleh meluluskan laporan")[0] == "yellow"
     assert classify("tidak boleh memulakan kerja")[0] == "red"
     assert classify("anything", "yellow") == ("yellow", OVERRIDE_WORDING)
+
+
+def test_severity_uses_the_whole_sentence():
+    # Seen live: the AI quoted the part of BPTL s.3 before "shall be guilty of an offence",
+    # which turned a trading-licence requirement into "info" and the headline into ⚪.
+    text = ("3. Any person who, whether alone or in partnership, carries on in Sarawak any business in respect "
+            "of which a trading licence is not for the time being in force shall be guilty of an offence: "
+            "Penalty, a fine of one thousand ringgit. 4. The Superintendent may issue a licence.")
+    quote = "carries on in Sarawak any business in respect of which a trading licence is not for the time being in force"
+    assert classify(quote)[0] == "info"
+    assert classify(sentence_around(quote, text))[0] == "red"
+    assert classify(sentence_around("The Superintendent may issue a licence", text))[0] == "yellow"
+    assert sentence_around("words that are not in the text at all", text) == "words that are not in the text at all"
 
 
 def test_headlines_never_say_clear():
