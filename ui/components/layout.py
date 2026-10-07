@@ -26,18 +26,3 @@ def eyebrow(text: str) -> None:
         f'<div class="rk-eyebrow">{html.escape(text)}</div>',
         unsafe_allow_html=True,
     )
-
-
-def require_admin() -> bool:
-    """Guard for Admin-only pages. If the active role is not Admin, show a
-    short notice and return False so the caller can stop rendering."""
-    if st.session_state.get("role") == "Admin":
-        return True
-    page_header(
-        "Restricted",
-        "This page is for Admins",
-        "Switch the role to Admin in the sidebar to review submissions, edit "
-        "the trigger map or read the audit log.",
-    )
-    st.info("Use the Role switch at the top of the sidebar to continue as Admin.")
-    return False

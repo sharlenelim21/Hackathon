@@ -17,24 +17,22 @@ from ui.components import badges, citation
 def render(
     condition: dict,
     render_highlight: Callable[[str, int, List[List[float]]], Optional[bytes]],
-    related_count: int = 0,
 ) -> None:
-    """Render a single condition as a card.
-
-    related_count: number of meeting-minutes records related to this law/
-    section. When > 0 a small hint points to the Related decisions section.
-    """
-    cid = condition.get("id", "C")
-    sector = condition.get("sector", "")
-    requirement = condition.get("requirement", "")
-    why = condition.get("why", "")
-    severity = condition.get("severity", "info")
-    matched = condition.get("matched_wording", "")
-    law_title = condition.get("law_title", "")
-    section_no = condition.get("section_no", "")
-    page = int(condition.get("page", 1) or 1)
-    version_label = condition.get("version_label", "")
-    in_force_date = condition.get("in_force_date", "")
+    """Render a single condition as a card."""
+    # Real backend fields can be present-but-None (e.g. in_force_date,
+    # version_label, section_no), so coerce every string field with `or ""`
+    # — a plain .get(key, "") still returns None when the key exists.
+    cid = condition.get("id") or "C"
+    sector = condition.get("sector") or ""
+    requirement = condition.get("requirement") or ""
+    why = condition.get("why") or ""
+    severity = condition.get("severity") or "info"
+    matched = condition.get("matched_wording") or ""
+    law_title = condition.get("law_title") or ""
+    section_no = condition.get("section_no") or ""
+    page = int(condition.get("page") or 1)
+    version_label = condition.get("version_label") or ""
+    in_force_date = condition.get("in_force_date") or ""
     not_yet = bool(condition.get("not_yet_in_force", False))
     pending_newer = condition.get("pending_newer_version")
 
@@ -60,12 +58,13 @@ def render(
         )
         st.markdown(header, unsafe_allow_html=True)
 
-        # Matched legal wording line.
-        st.markdown(
-            '<div class="sli-wording">Legal wording: '
-            f"&lsquo;{html.escape(matched)}&rsquo; &middot; {review_hint}</div>",
-            unsafe_allow_html=True,
-        )
+        # Matched legal wording line (only when the backend supplied wording).
+        if matched:
+            st.markdown(
+                '<div class="sli-wording">Legal wording: '
+                f"&lsquo;{html.escape(matched)}&rsquo; &middot; {review_hint}</div>",
+                unsafe_allow_html=True,
+            )
 
         # Requirement text.
         st.markdown(
@@ -74,19 +73,19 @@ def render(
         )
 
         # Meta line: law · s.X · p.N · Version · in force (single muted line).
-        ref = (
-            f"{html.escape(law_title)} &middot; s.{html.escape(section_no)} "
-            f"&middot; p.{page}"
-        )
+        # Build from parts so missing fields are simply omitted.
+        parts = [html.escape(law_title)] if law_title else []
+        if section_no:
+            parts.append(f"s.{html.escape(section_no)}")
+        parts.append(f"p.{page}")
+        if version_label:
+            parts.append(f"Version: {html.escape(version_label)}")
         if not_yet:
-            version_part = f"Version: {html.escape(version_label)} &middot; Not yet in force"
-        else:
-            version_part = (
-                f"Version: {html.escape(version_label)} &middot; "
-                f"in force: {html.escape(in_force_date)}"
-            )
+            parts.append("Not yet in force")
+        elif in_force_date:
+            parts.append(f"in force: {html.escape(in_force_date)}")
         st.markdown(
-            f'<div class="sli-meta">{ref} &middot; {version_part}</div>',
+            f'<div class="sli-meta">{" &middot; ".join(parts)}</div>',
             unsafe_allow_html=True,
         )
 
@@ -112,12 +111,3 @@ def render(
             render_highlight=render_highlight,
             key=f"cite_{cid}",
         )
-
-        # Link to related meeting minutes shown lower in the result.
-        if related_count:
-            plural = "s" if related_count != 1 else ""
-            st.markdown(
-                f'<div class="rk-related-link">▾ {related_count} related '
-                f"decision{plural} — see “Related decisions” below.</div>",
-                unsafe_allow_html=True,
-            )

@@ -1,11 +1,15 @@
-"""RAKAN — Regulatory Advisory & Compliance Alert Network (frontend prototype).
+"""RAKAN — Regulatory Advisory & Compliance Alert Network (frontend).
 
 Single Streamlit entry point. Draws a custom sidebar (brand → role → page
-links → demo → footer) with st.navigation(position="hidden"), and builds the
-page list from the simulated role (Officer / Admin).
+links → footer) with st.navigation(position="hidden"), and builds the page
+list from the simulated role.
 
-We deliberately use ui/views/ (NOT pages/) so Streamlit does not auto-list
-screens; access control is enforced by which pages we register per role.
+Roles match the backend's human-in-the-loop model:
+  - Worker: checks planned actions against approved laws.
+  - Legal officer: uploads laws, reviews the pending queue, curates triggers,
+    reads the audit log.
+
+The backend (services/) is wired through ui/backend.py (USE_MOCK = False).
 """
 
 from __future__ import annotations
@@ -15,53 +19,41 @@ import streamlit as st
 from ui import backend
 from ui.styles import inject_css
 from ui.views import (
-    admin_audit,
-    admin_review,
-    admin_triggers,
-    library,
-    my_submissions,
-    submit_change,
+    admin_audit as audit_view,
+    admin_review as review_view,
+    admin_triggers as triggers_view,
+    submit_change as upload_view,
     worker_check,
 )
 
 APP_NAME = "RAKAN"
 
-_ROLE_OFFICER = "Officer"
-_ROLE_ADMIN = "Admin"
-_ROLE_OPTIONS = [_ROLE_OFFICER, _ROLE_ADMIN]
+_ROLE_WORKER = "Worker"
+_ROLE_OFFICER = "Legal officer"
+_ROLE_OPTIONS = [_ROLE_WORKER, _ROLE_OFFICER]
 _ROLE_HINTS = {
-    _ROLE_OFFICER: "Check planned actions, read approved sources, submit changes.",
-    _ROLE_ADMIN: "Everything officers can do, plus approve or reject changes.",
+    _ROLE_WORKER: "Check planned actions against approved laws.",
+    _ROLE_OFFICER: "Upload laws, review the queue, curate triggers, read the "
+                   "audit log.",
 }
 
-_SCENARIO_LABELS = {
-    "🔴 Kapit school extension (mandatory)": "red",
-    "🟡 Conditional only": "yellow",
-    "⚪ No requirements found": "none",
-    "❔ No confident answer": "abstain",
-}
+
+def _worker_pages() -> list:
+    return [
+        st.Page(worker_check.render, title="Check an action", url_path="check",
+                icon=":material/fact_check:", default=True),
+    ]
 
 
 def _officer_pages() -> list:
     return [
-        st.Page(worker_check.render, title="Check an action", url_path="check",
-                icon=":material/fact_check:", default=True),
-        st.Page(library.render, title="Library", url_path="library",
-                icon=":material/menu_book:"),
-        st.Page(submit_change.render, title="Submit a change", url_path="submit",
-                icon=":material/upload_file:"),
-        st.Page(my_submissions.render, title="My submissions",
-                url_path="my-submissions", icon=":material/outbox:"),
-    ]
-
-
-def _admin_only_pages() -> list:
-    return [
-        st.Page(admin_review.render, title="Review queue", url_path="review",
+        st.Page(upload_view.render, title="Upload law", url_path="upload",
+                icon=":material/upload_file:", default=True),
+        st.Page(review_view.render, title="Review queue", url_path="review",
                 icon=":material/rule:"),
-        st.Page(admin_triggers.render, title="Trigger map", url_path="triggers",
+        st.Page(triggers_view.render, title="Trigger map", url_path="triggers",
                 icon=":material/account_tree:"),
-        st.Page(admin_audit.render, title="Audit log", url_path="audit",
+        st.Page(audit_view.render, title="Audit log & laws", url_path="audit",
                 icon=":material/history:"),
     ]
 
@@ -80,26 +72,19 @@ def _render_brand() -> None:
 
 
 def _render_role_switch() -> str:
-    """Segmented role control that can never be deselected.
-
-    Uses key='role_choice' + an on_change callback that restores the previous
-    role when the widget returns None (user clicked the active segment)."""
-    previous = st.session_state.get("role", _ROLE_OFFICER)
+    """Segmented role control that can never be deselected."""
+    previous = st.session_state.get("role", _ROLE_WORKER)
 
     def _on_change() -> None:
         if st.session_state.get("role_choice") is None:
             st.session_state["role_choice"] = st.session_state.get(
-                "role", _ROLE_OFFICER
+                "role", _ROLE_WORKER
             )
 
     st.markdown('<div class="rk-label">Role</div>', unsafe_allow_html=True)
     selection = st.segmented_control(
-        "Role",
-        options=_ROLE_OPTIONS,
-        selection_mode="single",
-        default=previous,
-        key="role_choice",
-        on_change=_on_change,
+        "Role", options=_ROLE_OPTIONS, selection_mode="single",
+        default=previous, key="role_choice", on_change=_on_change,
         label_visibility="collapsed",
     )
     role = selection if selection in _ROLE_OPTIONS else previous
@@ -109,45 +94,29 @@ def _render_role_switch() -> str:
     return role
 
 
-def _render_demo_controls(role: str) -> None:
-    st.markdown(
-        '<div class="rk-demo-row">'
-        '<span class="rk-label" style="margin:0;">Demo</span>'
-        '<span class="rk-badge">MOCK DATA</span>'
-        "</div>",
-        unsafe_allow_html=True,
-    )
-    chosen = st.selectbox(
-        "Mock scenario", list(_SCENARIO_LABELS.keys()),
-        label_visibility="collapsed",
-        help="Switches the sample check_action response.",
-    )
-    st.session_state["mock_scenario"] = _SCENARIO_LABELS[chosen]
+def _queue_count() -> int:
+    try:
+        return len(backend.list_pending())
+    except Exception:
+        return 0
 
 
 def _render_footer() -> None:
     try:
-        law_count = len(backend.list_library("laws"))
+        law_count = sum(
+            1 for law in backend.list_laws() if law.get("status") == "approved"
+        )
     except Exception:
         law_count = 0
-    proto = ('<div class="rk-hint">Prototype · sample data</div>'
-             if backend.USE_MOCK else "")
+    note = ""
+    if backend.USE_MOCK:
+        note = '<div class="rk-hint">Prototype · sample data</div>'
     st.markdown(
         '<div style="margin-top:28px;">'
         f'<div class="rk-hint">{law_count} approved laws indexed</div>'
-        f"{proto}</div>",
+        f"{note}</div>",
         unsafe_allow_html=True,
     )
-
-
-def _queue_count() -> int:
-    try:
-        return sum(
-            1 for p in backend.list_pending()
-            if p.get("type") in ("new_law", "new_version", "minutes")
-        )
-    except Exception:
-        return 0
 
 
 def main() -> None:
@@ -160,30 +129,18 @@ def main() -> None:
     with st.sidebar:
         _render_brand()
         role = _render_role_switch()
-
-        officer_pages = _officer_pages()
-        admin_pages = _admin_only_pages()
-        current_pages = (officer_pages if role == _ROLE_OFFICER
-                         else officer_pages + admin_pages)
+        current_pages = (_worker_pages() if role == _ROLE_WORKER
+                         else _officer_pages())
 
         nav = st.navigation(current_pages, position="hidden")
 
-        # Shared (Officer + Admin) links.
         st.markdown('<div class="rk-label">Navigate</div>', unsafe_allow_html=True)
-        for p in officer_pages:
-            st.page_link(p)
+        q = _queue_count()
+        for p in current_pages:
+            label = (f"{p.title} · {q}"
+                     if p.url_path == "review" and q else p.title)
+            st.page_link(p, label=label)
 
-        # Admin-only links under an ADMIN label.
-        if role == _ROLE_ADMIN:
-            st.markdown('<div class="rk-label">Admin</div>',
-                        unsafe_allow_html=True)
-            q = _queue_count()
-            for p in admin_pages:
-                label = f"{p.title} · {q}" if p.url_path == "review" and q else p.title
-                st.page_link(p, label=label)
-
-        if backend.USE_MOCK:
-            _render_demo_controls(role)
         _render_footer()
 
     nav.run()

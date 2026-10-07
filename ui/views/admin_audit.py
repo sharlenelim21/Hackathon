@@ -50,11 +50,9 @@ def _render_audit() -> None:
 
 
 def render() -> None:
-    if not layout.require_admin():
-        return
     layout.page_header(
         "Audit & records",
-        "Audit log",
+        "Audit log & laws",
         "A full trail of submissions, approvals and rejections (newest first), "
         "plus the indexed laws.",
     )

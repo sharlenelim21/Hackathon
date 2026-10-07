@@ -11,12 +11,7 @@ import html
 import streamlit as st
 
 from ui import backend
-from ui.components import (
-    condition_card,
-    headline,
-    layout,
-    related_minutes,
-)
+from ui.components import condition_card, headline, layout
 
 _FOOTER = (
     "This is a compliance reference before action, not a legal judgment "
@@ -71,7 +66,9 @@ def _clear_text() -> None:
 
 def _coverage_chips() -> None:
     try:
-        law_count = len(backend.list_laws())
+        law_count = sum(
+            1 for law in backend.list_laws() if law.get("status") == "approved"
+        )
     except Exception:
         law_count = 0
     chips = [
@@ -145,8 +142,13 @@ def _input_card() -> None:
         )
 
     if checked:
-        with st.spinner("Checking indexed laws…"):
-            st.session_state["worker_result"] = backend.check_action(text)
+        with st.spinner("Reading approved laws… (the AI runs two passes, "
+                        "this can take 10–30s)"):
+            try:
+                st.session_state["worker_result"] = backend.check_action(text)
+            except Exception as exc:
+                st.session_state.pop("worker_result", None)
+                st.error(getattr(exc, "message", None) or str(exc))
 
 
 def _facts_chips(facts: dict) -> None:
@@ -208,23 +210,11 @@ def _render_result(result: dict) -> None:
                 unsafe_allow_html=True,
             )
 
-    minutes = result.get("related_minutes") or []
-
     conditions = result.get("conditions") or []
     if conditions:
         st.markdown("##### Checklist")
         for cond in conditions:
-            # Count minutes that relate to this condition's law + section.
-            count = sum(
-                1 for m in minutes
-                if m.get("related_law") == cond.get("law_title")
-                and (m.get("section_no") in (None, cond.get("section_no")))
-            )
-            condition_card.render(cond, backend.render_highlight,
-                                  related_count=count)
-
-    # Related decisions (meeting minutes) — informational, never a condition.
-    related_minutes.render(minutes, backend.render_highlight)
+            condition_card.render(cond, backend.render_highlight)
 
     if status == "none":
         indexed = result.get("indexed_laws") or []
@@ -241,8 +231,9 @@ def _render_result(result: dict) -> None:
                 f"· {sec.get('heading', '')} (p.{sec.get('page', '')})"
             )
 
+    footer = result.get("disclaimer") or _FOOTER
     st.markdown(
-        f'<div class="sli-footer">{html.escape(_FOOTER)}</div>',
+        f'<div class="sli-footer">{html.escape(footer)}</div>',
         unsafe_allow_html=True,
     )
 

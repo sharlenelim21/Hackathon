@@ -1,8 +1,8 @@
-"""Admin screen — "Review queue".
+"""Legal officer screen — "Review queue".
 
-The human-in-the-loop core. Every submission (from an Officer or an Admin)
-arrives here as pending. Approve makes it citable by the AI; Reject keeps it
-for the audit trail and requires a note.
+The human-in-the-loop gate. Pending law uploads, new versions and proposed
+trigger rules wait here. Approving a version makes it searchable/citable;
+rejecting keeps it out. Maps to backend list_pending / approve / reject.
 
 Views call ui.backend only.
 """
@@ -14,26 +14,24 @@ import html
 import streamlit as st
 
 from ui import backend
-from ui.components import badges, layout
+from ui.components import layout
 
 _TYPE_LABEL = {
     "new_law": "New law",
     "new_version": "New version",
-    "minutes": "Meeting minutes",
-    "trigger": "Trigger",
+    "trigger": "Trigger rule",
 }
 
 _FILTERS = {
     "All": None,
     "New law": "new_law",
     "New version": "new_version",
-    "Meeting minutes": "minutes",
+    "Trigger rule": "trigger",
 }
 _FILTER_KEY = "review_filter"
 
 
 def _filter_chips() -> str:
-    """Segmented control acting as filter chips. Always one selected."""
     labels = list(_FILTERS.keys())
     default = st.session_state.get("review_filter_label", "All")
 
@@ -66,7 +64,8 @@ def _render_diff(diff: list) -> None:
 
 def _render_item(item: dict) -> None:
     item_id = item["id"]
-    type_label = _TYPE_LABEL.get(item.get("type"), item.get("type", "item"))
+    item_type = item.get("type", "item")
+    type_label = _TYPE_LABEL.get(item_type, item_type)
 
     with st.container(border=True):
         st.markdown('<div class="rk-card-marker"></div>', unsafe_allow_html=True)
@@ -74,72 +73,85 @@ def _render_item(item: dict) -> None:
         head = (
             '<div class="sli-card-head">'
             f'<span class="sli-pill version">{html.escape(type_label)}</span>'
-            '<span class="sli-card-head-right">'
-            f'<span class="sli-pill info">{html.escape(item.get("submitted_by_role","—"))}</span>'
-            "</span></div>"
+            "</div>"
         )
         st.markdown(head, unsafe_allow_html=True)
         st.markdown(
             f'<div class="sli-requirement">{html.escape(item.get("title",""))}</div>',
             unsafe_allow_html=True,
         )
-        meta = (
-            f'Submitted by {html.escape(item.get("uploaded_by",""))} '
-            f'&middot; {html.escape(item.get("uploaded_at",""))}'
+        st.markdown(
+            '<div class="sli-meta">'
+            f'Submitted by {html.escape(str(item.get("uploaded_by","")))} '
+            f'&middot; {html.escape(str(item.get("uploaded_at","")))}</div>',
+            unsafe_allow_html=True,
         )
-        st.markdown(f'<div class="sli-meta">{meta}</div>', unsafe_allow_html=True)
 
-        related = item.get("related_laws") or []
-        if related:
+        # Trigger proposals carry a note; versions may carry a diff + warnings.
+        if item.get("note"):
             st.markdown(
-                f'<div class="sli-meta">Related: '
-                f'{html.escape(", ".join(related))}</div>',
+                f'<div class="sli-meta"><b>Note:</b> '
+                f'{html.escape(str(item["note"]))}</div>',
                 unsafe_allow_html=True,
             )
-        if item.get("summary"):
-            label = ("Decision summary" if item.get("type") == "minutes"
-                     else "What changed")
+        summary = item.get("diff_summary")
+        if summary:
             st.markdown(
-                f'<div class="sli-meta"><b>{label}:</b> '
-                f'{html.escape(item["summary"])}</div>',
+                '<div class="sli-meta"><b>Changes:</b> '
+                f'{summary.get("added",0)} added · {summary.get("removed",0)} '
+                f'removed · {summary.get("changed",0)} changed · '
+                f'{summary.get("unchanged",0)} unchanged</div>',
                 unsafe_allow_html=True,
             )
+        for w in item.get("warnings") or []:
+            st.caption(f"⚠ {w}")
         if item.get("diff"):
-            _render_diff(item["diff"])
+            with st.expander("View section diff"):
+                _render_diff(item["diff"])
 
         note = st.text_input("Note (required to reject)", key=f"note_{item_id}")
         col_a, col_r = st.columns(2)
-        if col_a.button("Approve — make citable", key=f"approve_{item_id}",
+        if col_a.button("Approve — make searchable", key=f"approve_{item_id}",
                         type="primary", use_container_width=True):
-            backend.approve(item_id, note, reviewer_role="Admin")
-            st.toast("Approved. RAKAN can now cite this source.", icon="✅")
-            st.rerun()
+            try:
+                backend.approve(item_id, note)
+                st.toast("Approved. RAKAN can now use this source.", icon="✅")
+                st.rerun()
+            except Exception as exc:
+                st.error(_err(exc))
         if col_r.button("Reject", key=f"reject_{item_id}", type="secondary",
                         use_container_width=True):
             if not note.strip():
                 st.warning("A note is required to reject an item.")
             else:
-                backend.reject(item_id, note, reviewer_role="Admin")
-                st.toast(f"Rejected: {item.get('title','')}", icon="🚫")
-                st.rerun()
+                try:
+                    backend.reject(item_id, note)
+                    st.toast(f"Rejected: {item.get('title','')}", icon="🚫")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(_err(exc))
+
+
+def _err(exc: Exception) -> str:
+    return getattr(exc, "message", None) or str(exc)
 
 
 def render() -> None:
-    if not layout.require_admin():
-        return
     layout.page_header(
         "Human in the loop",
         "Review queue",
-        "Every submission waits here until you decide. Approve makes a source "
-        "citable by RAKAN; Reject keeps it for the audit trail.",
+        "Pending uploads and proposed trigger rules wait here. Approving a "
+        "version makes it searchable and citable by RAKAN; rejecting keeps it "
+        "out. Reject requires a note.",
     )
 
     type_filter = _filter_chips()
-    pending = backend.list_pending()
-    # The trigger proposals also live in pending; the review queue focuses on
-    # law/version/minutes submissions.
-    pending = [p for p in pending if p.get("type") in
-               ("new_law", "new_version", "minutes")]
+    try:
+        pending = backend.list_pending()
+    except Exception as exc:
+        st.error(_err(exc))
+        return
+
     if type_filter:
         pending = [p for p in pending if p.get("type") == type_filter]
 

@@ -10,7 +10,7 @@ teammate implementing services/ must return these exact shapes.
 
 from __future__ import annotations
 
-from typing import List, Optional, TypedDict, Union
+from typing import List, Optional, TypedDict
 
 # ---------------------------------------------------------------------------
 # Mode toggle
@@ -19,7 +19,9 @@ from typing import List, Optional, TypedDict, Union
 # False -> import the same-named functions from services/. If services/ is
 #          missing we fall back to mock and surface an st.warning so the
 #          demo never hard-crashes.
-USE_MOCK = True
+#
+# The merged services/ backend is now present, so we use it by default.
+USE_MOCK = False
 
 
 # ---------------------------------------------------------------------------
@@ -79,23 +81,6 @@ class ClosestSection(TypedDict):
     page: int
 
 
-class RelatedMinute(TypedDict):
-    """A meeting-minutes record related to a result. Minutes are an official
-    internal record, NOT law: they never create a condition or change the
-    headline. They appear as 'Related decisions' after the checklist."""
-    id: str
-    title: str
-    meeting_date: str  # "YYYY-MM-DD"
-    body: str  # organising body, e.g. "Legal Department"
-    related_law: str
-    section_no: Optional[str]
-    quote: str
-    page: int
-    pdf_path: Optional[str]
-    highlight_rects: List[List[float]]
-    approved_on: str  # "YYYY-MM-DD"
-
-
 class CheckResult(TypedDict):
     status: str  # "red" | "yellow" | "none" | "abstain"
     headline: str
@@ -104,7 +89,9 @@ class CheckResult(TypedDict):
     conditions: List[Condition]
     indexed_laws: List[str]
     closest_sections: List[ClosestSection]
-    related_minutes: List[RelatedMinute]
+    # The backend also returns extra keys (disclaimer, explanation, language,
+    # kb_version, llm_model, timings_ms, dropped_unverified). They are optional
+    # for the UI; TypedDict with extras is tolerated at runtime.
 
 
 class TocEntry(TypedDict):
@@ -134,41 +121,14 @@ class DiffRow(TypedDict):
 
 class PendingItem(TypedDict):
     id: int
-    type: str  # "new_law" | "new_version" | "minutes" | "trigger"
+    type: str  # "new_law" | "new_version" | "trigger"
     title: str
     uploaded_by: str
     uploaded_at: str
-    submitted_by_role: str  # "Officer" | "Admin"
-    related_laws: List[str]
-    summary: str
     diff: Optional[List[DiffRow]]
-
-
-class SubmissionRow(TypedDict):
-    id: int
-    type: str  # "new_law" | "new_version" | "minutes"
-    title: str
-    submitted_at: str
-    status: str  # "pending" | "approved" | "rejected"
-    review_note: str
-
-
-class MinutesRow(TypedDict):
-    id: int
-    title: str
-    meeting_date: str
-    body: str
-    related_laws: List[str]
-    section_no: Optional[str]
-    summary: str
-    approved_on: str
-    status: str
-    pdf_path: Optional[str]
-
-
-class SubmitChangeResult(TypedDict):
-    id: int
-    status: str  # "pending"
+    # The backend adds extras (version_id, law_id, law_code, unified_diff,
+    # diff_summary, warnings) for versions, and (trigger_id, status,
+    # severity_override, note) for trigger proposals.
 
 
 class TriggerRow(TypedDict):
@@ -215,13 +175,11 @@ if not USE_MOCK:
             check_action as _check_action,
             get_audit_log as _get_audit_log,
             list_laws as _list_laws,
-            list_library as _list_library,
-            list_my_submissions as _list_my_submissions,
             list_pending as _list_pending,
             list_triggers as _list_triggers,
             propose_trigger as _propose_trigger,
             reject as _reject,
-            submit_change as _submit_change,
+            submit_upload as _submit_upload,
             upload_preview as _upload_preview,
         )
     except Exception as exc:  # pragma: no cover - defensive demo fallback
@@ -271,16 +229,16 @@ def upload_preview(file_bytes: bytes, meta: dict) -> UploadPreview:
     return mock_data.upload_preview(file_bytes, meta)
 
 
-def submit_change(
-    kind: str, file_bytes: bytes, meta: dict, submitted_by_role: str
-) -> SubmitChangeResult:
-    """Create a pending submission. kind is 'new_law' | 'new_version' |
-    'minutes'; submitted_by_role is 'Officer' | 'Admin'."""
+def submit_upload(file_bytes: bytes, meta: dict) -> SubmitUploadResult:
+    """Save an uploaded law PDF as a PENDING version (not searchable until
+    approved). `meta` must include title, jurisdiction, sector, version_label;
+    optional: cap_no, published_date, in_force_date, source_url,
+    source_authority, instrument_type, language, parse_mode."""
     if _use_services():
-        return _submit_change(kind, file_bytes, meta, submitted_by_role)  # type: ignore[name-defined]
+        return _submit_upload(file_bytes, meta)  # type: ignore[name-defined]
     from ui import mock_data
 
-    return mock_data.submit_change(kind, file_bytes, meta, submitted_by_role)
+    return mock_data.submit_upload(file_bytes, meta)
 
 
 def list_pending() -> List[PendingItem]:
@@ -291,37 +249,20 @@ def list_pending() -> List[PendingItem]:
     return mock_data.list_pending()
 
 
-def approve(item_id: int, note: str, reviewer_role: str = "Admin") -> None:
+def approve(item_id: int, note: str = "", reviewer: str = "Legal officer") -> None:
     if _use_services():
-        return _approve(item_id, note, reviewer_role)  # type: ignore[name-defined]
+        return _approve(item_id, note, reviewer)  # type: ignore[name-defined]
     from ui import mock_data
 
-    return mock_data.approve(item_id, note, reviewer_role)
+    return mock_data.approve(item_id, note, reviewer)
 
 
-def reject(item_id: int, note: str, reviewer_role: str = "Admin") -> None:
+def reject(item_id: int, note: str = "", reviewer: str = "Legal officer") -> None:
     if _use_services():
-        return _reject(item_id, note, reviewer_role)  # type: ignore[name-defined]
+        return _reject(item_id, note, reviewer)  # type: ignore[name-defined]
     from ui import mock_data
 
-    return mock_data.reject(item_id, note, reviewer_role)
-
-
-def list_library(kind: str) -> List[dict]:
-    """Approved items only. kind is 'laws' | 'minutes'."""
-    if _use_services():
-        return _list_library(kind)  # type: ignore[name-defined]
-    from ui import mock_data
-
-    return mock_data.list_library(kind)
-
-
-def list_my_submissions(role: str) -> List[SubmissionRow]:
-    if _use_services():
-        return _list_my_submissions(role)  # type: ignore[name-defined]
-    from ui import mock_data
-
-    return mock_data.list_my_submissions(role)
+    return mock_data.reject(item_id, note, reviewer)
 
 
 def list_triggers() -> List[TriggerRow]:

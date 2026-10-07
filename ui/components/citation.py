@@ -38,7 +38,7 @@ def render(
     """
     # Serif "law book" quote box.
     st.markdown(
-        f'<div class="sli-quote">&ldquo;{html.escape(quote)}&rdquo;</div>',
+        f'<div class="sli-quote">&ldquo;{html.escape(quote or "")}&rdquo;</div>',
         unsafe_allow_html=True,
     )
 

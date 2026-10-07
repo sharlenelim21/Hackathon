@@ -62,16 +62,17 @@ def _propose_form() -> None:
         elif not section_no.strip():
             st.warning("Enter a section number.")
         else:
-            backend.propose_trigger(
-                activity_tag, law_options[law_label], section_no, note
-            )
-            st.toast("Trigger proposed (pending review).", icon="📝")
-            st.rerun()
+            try:
+                backend.propose_trigger(
+                    activity_tag, law_options[law_label], section_no, note
+                )
+                st.toast("Trigger proposed (pending review).", icon="📝")
+                st.rerun()
+            except Exception as exc:
+                st.error(getattr(exc, "message", None) or str(exc))
 
 
 def render() -> None:
-    if not layout.require_admin():
-        return
     layout.page_header(
         "Law management",
         "Trigger map",
