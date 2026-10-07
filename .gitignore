@@ -1,0 +1,16 @@
+# Secrets: never commit
+.streamlit/secrets.toml
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Runtime data (rebuilt from seed/ on startup)
+data/
+
+# Local planning docs (kept out of the shared repo)
+.kiro/
+docs/

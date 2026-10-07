@@ -1,0 +1,7 @@
+{
+  "facts": {"activity": "build a municipal waste recycling and storage facility", "location": "beside the Rejang River, Kapit", "area_ha": "3 hectares", "land_status": null},
+  "missing_facts": ["Whether the site is native customary rights (NCR) land"],
+  "tags": ["waste_disposal", "native_land", "not_a_real_tag"],
+  "laws": ["NREO", "LC", "NOT_A_LAW"],
+  "sections": [{"key": "NREO:11A", "reason": "listed activity"}, {"key": "NREO:999", "reason": "invented"}]
+}

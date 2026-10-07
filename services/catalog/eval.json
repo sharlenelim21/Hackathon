@@ -1,0 +1,140 @@
+[
+  {
+    "id": 1,
+    "action_text": "Kapit District Council will build a municipal waste recycling and storage facility on a 3-hectare site beside the Rejang River.",
+    "expected_keys": [
+      "NREO:11A"
+    ],
+    "accept_levels": [
+      "red"
+    ],
+    "note": "Demo case. s.11A(1)(h) (+ (g) river)."
+  },
+  {
+    "id": 2,
+    "action_text": "The Public Works Department plans a new sewage treatment plant for Sibu town.",
+    "expected_keys": [
+      "NREO:11A"
+    ],
+    "accept_levels": [
+      "red"
+    ],
+    "note": "s.11A(1)(i)."
+  },
+  {
+    "id": 3,
+    "action_text": "A state agency will extract rock from a hill quarry to supply a road project.",
+    "expected_keys": [
+      "NREO:11A"
+    ],
+    "accept_levels": [
+      "red"
+    ],
+    "note": "s.11A(1)(f)."
+  },
+  {
+    "id": 4,
+    "action_text": "The Agriculture Department wants to develop a 600-hectare oil palm plantation.",
+    "expected_keys": [
+      "NREO:11A"
+    ],
+    "accept_levels": [
+      "red",
+      "yellow"
+    ],
+    "note": "s.11A(1)(a); threshold is in the Prescribed Activities Order, which is not indexed, so expect a missing fact."
+  },
+  {
+    "id": 5,
+    "action_text": "A contractor will log a forest area that was already logged ten years ago.",
+    "expected_keys": [
+      "NREO:11A"
+    ],
+    "accept_levels": [
+      "red",
+      "yellow"
+    ],
+    "note": "s.11A(1)(c)."
+  },
+  {
+    "id": 6,
+    "action_text": "The Education Department will build a school extension on land that a longhouse community says is their customary land.",
+    "expected_keys": [],
+    "accept_levels": [
+      "yellow",
+      "red"
+    ],
+    "note": "Land Code NCR check: s.5 (native customary rights) or s.15 (protection of native customary rights).",
+    "expected_any": [
+      "LC:5",
+      "LC:15"
+    ]
+  },
+  {
+    "id": 7,
+    "action_text": "A housing project of 200 houses on a 40-hectare site near Miri.",
+    "expected_keys": [
+      "NREO:11A"
+    ],
+    "accept_levels": [
+      "red",
+      "yellow"
+    ],
+    "note": "s.11A(1)(e); threshold in the Order (not indexed)."
+  },
+  {
+    "id": 8,
+    "action_text": "Clearing vegetation upstream of a water intake that supplies drinking water to a town.",
+    "expected_keys": [
+      "NREO:11A"
+    ],
+    "accept_levels": [
+      "red",
+      "yellow"
+    ],
+    "note": "s.11A(1)(d)."
+  },
+  {
+    "id": 9,
+    "action_text": "Interior renovation of an existing clinic building in Kuching, no change to the building footprint.",
+    "expected_keys": [],
+    "accept_levels": [
+      "none",
+      "abstain"
+    ],
+    "note": "Negative control."
+  },
+  {
+    "id": 10,
+    "action_text": "Purchase of 50 laptops for the district office.",
+    "expected_keys": [],
+    "accept_levels": [
+      "none",
+      "abstain"
+    ],
+    "note": "Negative control."
+  },
+  {
+    "id": 11,
+    "action_text": "A trader wants to open a new food stall business in Kuching and register the business name.",
+    "expected_keys": [
+      "CAP64:4"
+    ],
+    "accept_levels": [
+      "red",
+      "yellow"
+    ],
+    "note": "Teammate dataset: Business Names Ordinance s.4."
+  },
+  {
+    "id": 12,
+    "action_text": "Majlis Daerah Kapit akan membina kemudahan kitar semula dan penyimpanan sisa perbandaran di tapak 3 hektar di tepi Sungai Rajang.",
+    "expected_keys": [
+      "NREO:11A"
+    ],
+    "accept_levels": [
+      "red"
+    ],
+    "note": "Bahasa Melayu version of case 1."
+  }
+]
